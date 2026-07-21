@@ -25,11 +25,14 @@ from metatrader_mcp.utils import resolve_transport_config, run_mcp
 @click.option("--port", default=None, type=int, help="Port to bind for SSE/HTTP transport (default: 8080, env: MCP_PORT)")
 def main(login, password, server, path, transport, host, port):
     """Launch the MetaTrader MCP server."""
-    # override env vars if provided via CLI
-    os.environ["LOGIN"] = str(login)
-    os.environ["PASSWORD"] = password
-    os.environ["SERVER"] = server
-    if path:
+    # override env vars if provided via CLI (only set non-None values)
+    if login is not None:
+        os.environ["LOGIN"] = str(login)
+    if password is not None:
+        os.environ["PASSWORD"] = password
+    if server is not None:
+        os.environ["SERVER"] = server
+    if path is not None:
         os.environ["MT5_PATH"] = path
 
     transport, host, port = resolve_transport_config(transport, host, port)
