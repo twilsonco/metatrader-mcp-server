@@ -8,7 +8,7 @@ import os
 import argparse
 import uvicorn
 from dotenv import load_dotenv
-from metatrader_mcp.utils import init
+from metatrader_mcp.utils import init, configure_logging
 from contextlib import asynccontextmanager
 
 # Instantiate settings
@@ -23,10 +23,11 @@ async def lifespan(app):
     password = os.getenv("PASSWORD", os.getenv("password"))
     server = os.getenv("SERVER", os.getenv("server"))
     path = os.getenv("MT5_PATH", os.getenv("mt5_path"))
+    configure_logging()
     client = init(login, password, server, path)
     app.state.client = client
     yield
-    if client:
+    if client is not None:
         client.disconnect()
 
 # Initialize FastAPI app with OpenAPI metadata and lifespan

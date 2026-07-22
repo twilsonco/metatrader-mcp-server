@@ -1,0 +1,4 @@
+Set WshShell = CreateObject("WScript.Shell")
+' Create logs folder if needed and launch uv silently while piping logs
+cmdStr = "cmd /c ""mkdir ""C:\Path\To\metatrader-mcp-server\logs"" 2>nul & uv run metatrader-mcp-server >> ""C:\Path\To\metatrader-mcp-server\logs\server.log"" 2>&1"""
+WshShell.Run cmdStr, 0, False

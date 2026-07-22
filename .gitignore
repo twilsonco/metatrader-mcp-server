@@ -44,3 +44,5 @@ Thumbs.db
 /tests/reports/*.md
 
 .pypirc
+
+run_hidden.vbs

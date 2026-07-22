@@ -4,7 +4,7 @@ import logging
 import click
 from dotenv import load_dotenv
 
-from metatrader_mcp.utils import init
+from metatrader_mcp.utils import init, configure_logging
 from metatrader_quote.config import Settings
 from metatrader_quote.server import QuoteServer
 
@@ -27,6 +27,7 @@ def main(login, password, server, path, host, port, symbols, poll_interval):
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
+    configure_logging()
 
     settings = Settings()
 

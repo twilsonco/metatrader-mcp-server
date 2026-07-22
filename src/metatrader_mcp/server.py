@@ -31,7 +31,8 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 		)
 		yield AppContext(client=client)
 	finally:
-		client.disconnect()
+		if client:
+			client.disconnect()
 
 # ────────────────────────────────────────────────────────────────────────────────
 # 2) Instantiate FastMCP as `mcp` (must be named `mcp`, `server`, or `app`)

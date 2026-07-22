@@ -13,7 +13,7 @@ for _p in _search_paths:
         break
 
 from metatrader_mcp.server import mcp
-from metatrader_mcp.utils import resolve_transport_config, run_mcp
+from metatrader_mcp.utils import resolve_transport_config, run_mcp, configure_logging
 
 @click.command()
 @click.option("--login", default=os.environ.get("LOGIN"), type=int, help="MT5 login ID")
@@ -36,6 +36,7 @@ def main(login, password, server, path, transport, host, port):
         os.environ["MT5_PATH"] = path
 
     transport, host, port = resolve_transport_config(transport, host, port)
+    configure_logging()
     run_mcp(mcp, transport, host, port)
 
 if __name__ == "__main__":
