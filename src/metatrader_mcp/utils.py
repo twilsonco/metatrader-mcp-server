@@ -101,19 +101,9 @@ def init(
 	server: Optional[str],
 	path: Optional[str] = None,
 ) -> Optional[client.MT5Client]:
-	"""
-	Initialize MT5Client and print a connection confirmation.
-
-	Args:
-		login (Optional[Union[str, int]]): Login ID
-		password (Optional[str]): Password
-		server (Optional[str]): Server name
-		path (Optional[str]): Path to MT5 terminal executable (default: None for auto-detect)
-
-	Returns:
-		Optional[client.MT5Client]: MT5Client instance on success, None if credentials are missing or connection fails.
-	"""
+	"""Initialize MT5Client and log connection status."""
 	configure_logging()
+	logger = logging.getLogger()
 
 	if not (login and password and server):
 		return None
@@ -125,20 +115,26 @@ def init(
 	}
 	if path:
 		config["path"] = path
-	# Honor MT5_DEBUG env var for verbose connection-level logging
+	
+	# Honor MT5_DEBUG env var
 	if os.getenv("MT5_DEBUG", "").lower() in ("1", "true", "yes"):
 		config["debug"] = True
 
 	mt5_client = client.MT5Client(config=config)
-	# MT5Client.__init__ resets per-module logger levels based on its debug
-	# flag; re-apply LOG_LEVEL so it wins over the default INFO.
+	
+	# Re-apply logging after MT5Client init
 	configure_logging()
+	
 	try:
 		if not mt5_client.connect():
-			print("[metatrader-mcp] Failed to connect to MT5 terminal", file=sys.stderr, flush=True)
+			msg = "Failed to connect to MT5 terminal"
+			print(f"[metatrader-mcp] {msg}", file=sys.stderr, flush=True)
+			logger.error(msg)
 			return None
 	except Exception as e:
-		print(f"[metatrader-mcp] Failed to connect to MT5 terminal: {e}", file=sys.stderr, flush=True)
+		msg = f"Failed to connect to MT5 terminal: {e}"
+		print(f"[metatrader-mcp] {msg}", file=sys.stderr, flush=True)
+		logger.error(msg)
 		return None
 
 	_print_confirmation(mt5_client, login, server)

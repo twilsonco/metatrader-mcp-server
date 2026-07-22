@@ -1,4 +1,0 @@
-Set WshShell = CreateObject("WScript.Shell")
-' Create logs folder if needed, cd into the project directory so .env is picked up, then launch uv silently
-cmdStr = "cmd /c ""mkdir ""C:\Path\To\metatrader-mcp-server\logs"" 2>nul & cd /d ""C:\Path\To\metatrader-mcp-server"" & uv run metatrader-mcp-server >> ""C:\Path\To\metatrader-mcp-server\logs\server.log"" 2>&1"""
-WshShell.Run cmdStr, 0, False

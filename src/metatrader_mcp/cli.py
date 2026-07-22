@@ -25,7 +25,7 @@ for _p in _search_paths:
         break
 
 from metatrader_mcp.server import mcp
-from metatrader_mcp.utils import resolve_transport_config, run_mcp, configure_logging
+from metatrader_mcp.utils import resolve_transport_config, run_mcp, configure_logging, init
 
 @click.command()
 @click.option("--login", default=os.environ.get("LOGIN"), type=int, help="MT5 login ID")
@@ -46,9 +46,19 @@ def main(login, password, server, path, transport, host, port):
         os.environ["SERVER"] = server
     if path is not None:
         os.environ["MT5_PATH"] = path
+    
+    # If path not provided via CLI, use env var
+    if path is None:
+        path = os.environ.get("MT5_PATH")
 
     transport, host, port = resolve_transport_config(transport, host, port)
     configure_logging()
+    
+    # Test MT5 connection at startup and print status
+    test_client = init(login, password, server, path)
+    if test_client:
+        test_client.disconnect()
+    
     run_mcp(mcp, transport, host, port)
 
 if __name__ == "__main__":
