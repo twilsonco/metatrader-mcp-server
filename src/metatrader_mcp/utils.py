@@ -8,24 +8,39 @@ from metatrader_client import client
 _LOGGING_CONFIGURED = False
 
 
-def configure_logging(level: int = logging.INFO) -> None:
+_MT5_LOGGER_NAMES = ("MT5Connection", "MT5Account", "MT5History", "MT5Market", "MT5Order")
+
+
+def _resolve_log_level(level: Optional[int]) -> int:
+	"""Resolve the effective log level from an explicit arg or the LOG_LEVEL env var."""
+	if level is not None:
+		return level
+	level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+	return getattr(logging, level_name, logging.INFO)
+
+
+def configure_logging(level: Optional[int] = None) -> None:
 	"""Configure logging for the MT5 client.
 
-	Sets up a stream handler on the 'MT5Connection' logger so connection
-	retries and success messages become visible. Idempotent — safe to call
-	multiple times. Callers can re-invoke with a different level to adjust
-	verbosity.
+	Reads ``LOG_LEVEL`` from the environment when ``level`` is not provided
+	(default: ``INFO``). Applies the level to every ``MT5*`` logger so that
+	connection, account, history, market, and order modules all honor the
+	same verbosity. Sets up a stream handler on the ``MT5Connection`` logger
+	so connection retries and success messages become visible. Idempotent —
+	safe to call multiple times. Callers can re-invoke with a different level
+	to adjust verbosity.
 	"""
 	global _LOGGING_CONFIGURED
-	logger = logging.getLogger("MT5Connection")
-	logger.setLevel(level)
+	level = _resolve_log_level(level)
+	for name in _MT5_LOGGER_NAMES:
+		logging.getLogger(name).setLevel(level)
 	if _LOGGING_CONFIGURED:
 		return
 	handler = logging.StreamHandler()
 	handler.setFormatter(
 		logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 	)
-	logger.addHandler(handler)
+	logging.getLogger("MT5Connection").addHandler(handler)
 	_LOGGING_CONFIGURED = True
 
 
@@ -110,8 +125,14 @@ def init(
 	}
 	if path:
 		config["path"] = path
+	# Honor MT5_DEBUG env var for verbose connection-level logging
+	if os.getenv("MT5_DEBUG", "").lower() in ("1", "true", "yes"):
+		config["debug"] = True
 
 	mt5_client = client.MT5Client(config=config)
+	# MT5Client.__init__ resets per-module logger levels based on its debug
+	# flag; re-apply LOG_LEVEL so it wins over the default INFO.
+	configure_logging()
 	try:
 		if not mt5_client.connect():
 			print("[metatrader-mcp] Failed to connect to MT5 terminal", file=sys.stderr, flush=True)

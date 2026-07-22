@@ -3,10 +3,22 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env BEFORE click parses options, so env vars are available as defaults
-# Search from the script's location, then fall back to cwd
+# Load .env BEFORE click parses options, so env vars are available as defaults.
+# Search order: cwd, then walk up from this file to find the project root
+# (directory containing pyproject.toml), then fall back to src-relative paths.
 _here = Path(__file__).resolve().parent
-_search_paths = [Path.cwd(), _here.parent / ".env", _here / ".env"]
+
+
+def _find_project_root(start: Path) -> Path:
+    """Walk up from `start` until a pyproject.toml is found, else return start's parent."""
+    for candidate in [start, *start.parents]:
+        if (candidate / "pyproject.toml").is_file():
+            return candidate
+    return start.parent
+
+
+_project_root = _find_project_root(_here)
+_search_paths = [Path.cwd(), _project_root / ".env", _here.parent / ".env", _here / ".env"]
 for _p in _search_paths:
     if _p.is_file():
         load_dotenv(_p)

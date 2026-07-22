@@ -548,6 +548,10 @@ SERVER=MetaQuotes-Demo
 
 # Optional: Specify custom MT5 terminal path (auto-detected if not provided)
 # MT5_PATH=C:\Program Files\MetaTrader 5\terminal64.exe
+
+# Optional: Verbose logging (see Logging Configuration below)
+# LOG_LEVEL=DEBUG
+# MT5_DEBUG=true
 ```
 
 Then start the server without arguments:
@@ -557,6 +561,24 @@ metatrader-http-server
 ```
 
 The server will automatically load credentials from the `.env` file.
+
+### Logging Configuration
+
+The server exposes two environment variables for controlling log verbosity — useful when troubleshooting MCP ↔ MT5 communication:
+
+| Env Var | Accepted Values | Default | Effect |
+|---------|-----------------|---------|--------|
+| `LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING`, `ERROR` | `INFO` | Sets the level for all `MT5*` loggers (`MT5Connection`, `MT5Account`, `MT5History`, `MT5Market`, `MT5Order`) and the root logger in the quote server. |
+| `MT5_DEBUG` | `1`, `true`, `yes` | unset | Enables the `debug` flag on the `MT5Client`, which surfaces verbose connection-level events (retry attempts, cooldown delays, terminal init steps). Combine with `LOG_LEVEL=DEBUG` for full visibility. |
+
+Example `.env` for troubleshooting:
+
+```env
+LOG_LEVEL=DEBUG
+MT5_DEBUG=true
+```
+
+Both variables are honored by all three entry points: `metatrader-mcp-server`, `metatrader-http-server`, and `metatrader-quote-server`.
 
 ### MCP Transport Configuration
 
@@ -606,7 +628,7 @@ config = {
 - **max_retries** (int, optional): Maximum number of connection retry attempts. Default: 3
 - **backoff_factor** (float, optional): Exponential backoff factor for retry delays. Default: 1.5
 - **cooldown_time** (float, optional): Minimum time in seconds between connection attempts. Default: 2.0
-- **debug** (bool, optional): Enable detailed debug logging for troubleshooting. Default: False
+- **debug** (bool, optional): Enable detailed debug logging for troubleshooting. Default: False. Equivalent to setting `MT5_DEBUG=true` in `.env`.
 
 ---
 

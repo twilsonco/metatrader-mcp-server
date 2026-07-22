@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 
 import click
 from dotenv import load_dotenv
@@ -23,8 +24,10 @@ logger = logging.getLogger(__name__)
 def main(login, password, server, path, host, port, symbols, poll_interval):
     """Launch the MetaTrader WebSocket Quote Server."""
     load_dotenv()
+    log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+    log_level = getattr(logging, log_level_name, logging.INFO)
     logging.basicConfig(
-        level=logging.INFO,
+        level=log_level,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
     configure_logging()
