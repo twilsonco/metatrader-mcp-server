@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, Query
 from typing import List, Dict, Any, Optional
 from datetime import datetime # Ensure datetime is imported
 # Removed unused import of pandas (pd)
-from metatrader_client.exceptions import ConnectionError as MT5ConnectionError
+from metatrader_client.exceptions import ConnectionError as MT5ConnectionError, SymbolNotFoundError
 
 router = APIRouter()
 
@@ -112,6 +112,30 @@ async def get_symbol_info_endpoint( # Choose a descriptive name like get_symbol_
         # Log the exception for debugging
         # logger.error(f"Error fetching symbol info for {symbol_name}: {e}")
         raise HTTPException(status_code=500, detail=f"An error occurred while fetching info for {symbol_name}: {str(e)}")
+
+@router.get("/symbol/contract_size/{symbol_name}", response_model=Dict[str, Any])
+async def get_symbol_contract_size_endpoint(
+    request: Request,
+    symbol_name: str
+):
+    """Get the trade contract size for a specific symbol.
+
+    Input:
+        symbol_name (str): The trading instrument symbol (e.g., "EURUSD").
+
+    Response:
+        Dict[str, Any]: A dictionary with keys 'symbol' and 'contract_size'.
+    """
+    client = request.app.state.client
+    try:
+        contract_size = client.market.get_symbol_contract_size(symbol_name=symbol_name)
+        return {"symbol": symbol_name, "contract_size": contract_size}
+    except SymbolNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except MT5ConnectionError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred while fetching contract size for {symbol_name}: {str(e)}")
 
 @router.get("/price/{symbol_name}", response_model=Dict[str, Any])
 async def symbol_price(
