@@ -9,7 +9,7 @@ import pandas as pd # Import pandas for creating a sample DataFrame
 from unittest.mock import MagicMock, patch
 
 from metatrader_openapi.main import app # Your FastAPI app
-from metatrader_client.exceptions import ConnectionError as MT5ConnectionError # Import custom exception
+from metatrader_client.exceptions import ConnectionError as MT5ConnectionError, SymbolNotFoundError # Import custom exception
 
 @pytest.fixture
 def mock_market_client_methods(monkeypatch):
@@ -213,3 +213,43 @@ def test_get_candles_by_date_connection_error(mock_market_client_methods):
         date_from=date_from_dt,
         date_to=date_to_dt
     )
+
+def test_get_symbol_contract_size_success(monkeypatch):
+    symbol_name = "EURUSD"
+    mock_get_contract_size = MagicMock()
+    mock_get_contract_size.return_value = 100000.0
+    monkeypatch.setattr("metatrader_openapi.routers.market.client.market.get_symbol_contract_size", mock_get_contract_size)
+
+    with TestClient(app) as api_client:
+        response = api_client.get(f"/api/v1/market/symbol/contract_size/{symbol_name}")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"symbol": symbol_name, "contract_size": 100000.0}
+    mock_get_contract_size.assert_called_once_with(symbol_name=symbol_name)
+
+def test_get_symbol_contract_size_not_found(monkeypatch):
+    symbol_name = "UNKNOWN"
+    mock_get_contract_size = MagicMock()
+    mock_get_contract_size.side_effect = SymbolNotFoundError(f"Symbol '{symbol_name}' not found")
+    monkeypatch.setattr("metatrader_openapi.routers.market.client.market.get_symbol_contract_size", mock_get_contract_size)
+
+    with TestClient(app) as api_client:
+        response = api_client.get(f"/api/v1/market/symbol/contract_size/{symbol_name}")
+
+    assert response.status_code == 404, response.text
+    assert "not found" in response.json()["detail"]
+    mock_get_contract_size.assert_called_once_with(symbol_name=symbol_name)
+
+def test_get_symbol_contract_size_connection_error(monkeypatch):
+    symbol_name = "EURUSD"
+    mock_get_contract_size = MagicMock()
+    mock_get_contract_size.side_effect = MT5ConnectionError("Test connection error")
+    monkeypatch.setattr("metatrader_openapi.routers.market.client.market.get_symbol_contract_size", mock_get_contract_size)
+
+    with TestClient(app) as api_client:
+        response = api_client.get(f"/api/v1/market/symbol/contract_size/{symbol_name}")
+
+    assert response.status_code == 503, response.text
+    assert "Test connection error" in response.json()["detail"]
+    mock_get_contract_size.assert_called_once_with(symbol_name=symbol_name)
+

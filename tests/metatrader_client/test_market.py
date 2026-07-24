@@ -110,3 +110,17 @@ def test_get_candles_invalid_symbol(mt5_market):
 def test_get_candles_invalid_timeframe(mt5_market):
     with pytest.raises(Exception):
         mt5_market.get_candles_latest(TEST_SYMBOL, "INVALID_TF", count=5)
+
+def test_get_symbol_contract_size(mt5_market):
+    print("\n📋 Testing get_symbol_contract_size...")
+    contract_size = mt5_market.get_symbol_contract_size(TEST_SYMBOL)
+    print(f"Contract size for {TEST_SYMBOL}: {contract_size} 📝")
+    assert isinstance(contract_size, float)
+    assert contract_size > 0
+    print("✅ get_symbol_contract_size passed!")
+
+def test_get_symbol_contract_size_invalid(mt5_market):
+    print("\n❌ Testing get_symbol_contract_size with invalid symbol...")
+    with pytest.raises(Exception):
+        mt5_market.get_symbol_contract_size("INVALID_SYMBOL")
+    print("✅ get_symbol_contract_size_invalid passed!")
