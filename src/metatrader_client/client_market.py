@@ -12,7 +12,7 @@ The MT5Market class serves as the main entry point for all market-related operat
 
 from typing import Dict, Any, List, Optional
 import pandas as pd
-from .market import get_symbols, get_symbol_info, get_symbol_price, get_candles_latest, get_candles_by_date
+from .market import get_symbols, get_symbol_info, get_symbol_price, get_candles_latest, get_candles_by_date, get_symbol_contract_size
 
 
 class MT5Market:
@@ -56,3 +56,6 @@ class MT5Market:
 
     def get_candles_by_date(self, symbol_name: str, timeframe: str, from_date: Optional[str] = None, to_date: Optional[str] = None) -> pd.DataFrame:
         return get_candles_by_date(self._connection, symbol_name, timeframe, from_date, to_date)
+
+    def get_symbol_contract_size(self, symbol_name: str) -> float:
+        return get_symbol_contract_size(self._connection, symbol_name=symbol_name)
