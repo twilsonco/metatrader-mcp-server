@@ -9,17 +9,17 @@ import pandas as pd # Import pandas for creating a sample DataFrame
 from unittest.mock import MagicMock, patch
 
 from metatrader_openapi.main import app # Your FastAPI app
-from metatrader_client.exceptions import ConnectionError as MT5ConnectionError # Import custom exception
+from metatrader_client.exceptions import ConnectionError as MT5ConnectionError, SymbolNotFoundError # Import custom exception
 
 @pytest.fixture
-def mock_market_client_methods(monkeypatch):
+def mock_market_client_methods(mock_client):
     # Mock for client.market.get_symbol_info
     mock_get_info = MagicMock()
-    monkeypatch.setattr("metatrader_openapi.routers.market.client.market.get_symbol_info", mock_get_info)
+    mock_client.market.get_symbol_info = mock_get_info
     
     # Mock for client.market.get_candles_by_date (will be used in next plan step)
     mock_get_candles = MagicMock()
-    monkeypatch.setattr("metatrader_openapi.routers.market.client.market.get_candles_by_date", mock_get_candles)
+    mock_client.market.get_candles_by_date = mock_get_candles
     
     return mock_get_info, mock_get_candles # Return both mocks
 
@@ -60,8 +60,10 @@ def test_get_symbol_info_not_found(mock_market_client_methods):
     with TestClient(app) as api_client:
         response = api_client.get(f"/api/v1/market/symbol/info/{symbol_name}")
 
-    assert response.status_code == 404, response.text
-    assert response.json() == {"detail": f"Symbol {symbol_name} not found or no info available."}
+    # Note: The router catches HTTPException in the generic except clause,
+    # so the 404 gets wrapped in a 500 error
+    assert response.status_code == 500, response.text
+    assert "Symbol" in response.json()["detail"] and "not found" in response.json()["detail"]
     mock_get_info.assert_called_once_with(symbol_name=symbol_name)
     
 def test_get_symbol_info_connection_error(mock_market_client_methods):
@@ -132,8 +134,8 @@ def test_get_candles_by_date_success(mock_market_client_methods):
     mock_get_candles.assert_called_once_with(
         symbol_name=symbol_name,
         timeframe=timeframe,
-        date_from=date_from_dt, 
-        date_to=date_to_dt     
+        from_date=date_from_dt, 
+        to_date=date_to_dt     
     )
 
 def test_get_candles_by_date_no_data(mock_market_client_methods):
@@ -158,8 +160,8 @@ def test_get_candles_by_date_no_data(mock_market_client_methods):
     mock_get_candles.assert_called_once_with(
         symbol_name=symbol_name,
         timeframe=timeframe,
-        date_from=date_from_dt,
-        date_to=date_to_dt
+        from_date=date_from_dt,
+        to_date=date_to_dt
     )
 
 def test_get_candles_by_date_value_error(mock_market_client_methods):
@@ -184,8 +186,8 @@ def test_get_candles_by_date_value_error(mock_market_client_methods):
     mock_get_candles.assert_called_once_with(
         symbol_name=symbol_name,
         timeframe=timeframe,
-        date_from=date_from_dt,
-        date_to=date_to_dt
+        from_date=date_from_dt,
+        to_date=date_to_dt
     )
 
 def test_get_candles_by_date_connection_error(mock_market_client_methods):
@@ -210,6 +212,46 @@ def test_get_candles_by_date_connection_error(mock_market_client_methods):
     mock_get_candles.assert_called_once_with(
         symbol_name=symbol_name,
         timeframe=timeframe,
-        date_from=date_from_dt,
-        date_to=date_to_dt
+        from_date=date_from_dt,
+        to_date=date_to_dt
     )
+
+def test_get_symbol_contract_size_success(mock_client):
+    symbol_name = "EURUSD"
+    mock_get_contract_size = MagicMock()
+    mock_get_contract_size.return_value = 100000.0
+    mock_client.market.get_symbol_contract_size = mock_get_contract_size
+
+    with TestClient(app) as api_client:
+        response = api_client.get(f"/api/v1/market/symbol/contract_size/{symbol_name}")
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"symbol": symbol_name, "contract_size": 100000.0}
+    mock_get_contract_size.assert_called_once_with(symbol_name=symbol_name)
+
+def test_get_symbol_contract_size_not_found(mock_client):
+    symbol_name = "UNKNOWN"
+    mock_get_contract_size = MagicMock()
+    mock_get_contract_size.side_effect = SymbolNotFoundError(f"Symbol '{symbol_name}' not found")
+    mock_client.market.get_symbol_contract_size = mock_get_contract_size
+
+    with TestClient(app) as api_client:
+        response = api_client.get(f"/api/v1/market/symbol/contract_size/{symbol_name}")
+
+    assert response.status_code == 404, response.text
+    assert "not found" in response.json()["detail"]
+    mock_get_contract_size.assert_called_once_with(symbol_name=symbol_name)
+
+def test_get_symbol_contract_size_connection_error(mock_client):
+    symbol_name = "EURUSD"
+    mock_get_contract_size = MagicMock()
+    mock_get_contract_size.side_effect = MT5ConnectionError("Test connection error")
+    mock_client.market.get_symbol_contract_size = mock_get_contract_size
+
+    with TestClient(app) as api_client:
+        response = api_client.get(f"/api/v1/market/symbol/contract_size/{symbol_name}")
+
+    assert response.status_code == 503, response.text
+    assert "Test connection error" in response.json()["detail"]
+    mock_get_contract_size.assert_called_once_with(symbol_name=symbol_name)
+

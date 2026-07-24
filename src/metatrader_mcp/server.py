@@ -87,6 +87,12 @@ def get_symbol_price(ctx: Context, symbol_name: str) -> dict:
 	return client.market.get_symbol_price(symbol_name=symbol_name)
 
 @mcp.tool()
+def get_symbol_contract_size(ctx: Context, symbol_name: str) -> float:
+	"""Get the trade contract size (number of units per lot) for a specified symbol."""
+	client = get_client(ctx)
+	return client.market.get_symbol_contract_size(symbol_name=symbol_name)
+
+@mcp.tool()
 def get_all_symbols(ctx: Context) -> list:
 	"""Get a list of all available market symbols."""
 	client = get_client(ctx)
