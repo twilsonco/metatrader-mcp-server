@@ -14,6 +14,8 @@ from .get_pending_orders_by_symbol import get_pending_orders_by_symbol
 from .get_pending_orders_by_currency import get_pending_orders_by_currency
 from .get_pending_orders_by_id import get_pending_orders_by_id
 
+from .get_next_open_position import get_next_open_position
+
 from .calculate_margin import calculate_margin
 from .calculate_profit import calculate_profit
 from .calculate_price_targets import calculate_price_target
@@ -39,11 +41,13 @@ __all__ = [
     "get_positions_by_currency",
     "get_positions_by_id",
 
-    "get_pending_orders", 
+    "get_pending_orders",
     "get_all_pending_orders",
     "get_pending_orders_by_symbol",
     "get_pending_orders_by_currency",
     "get_pending_orders_by_id",
+
+    "get_next_open_position",
 
     "calculate_margin", 
     "calculate_profit",

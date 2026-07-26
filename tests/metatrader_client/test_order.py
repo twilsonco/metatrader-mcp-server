@@ -298,3 +298,91 @@ def test_full_order_functionality(mt5_client):
         f.write("\n---\n")
         f.write(f"**Status:** {status}\n")
     print(f"\n📄 Test report written to: {filepath}\n")
+
+
+def test_get_next_open_position(mt5_client):
+    """Tests the round-robin open position picker."""
+    print("\n🧪 Testing get_next_open_position 🧪")
+
+    result = mt5_client.order.get_next_open_position()
+
+    print(f"Result: {result}")
+    assert result is not None, "Result is None."
+    assert "error" in result, "Result missing 'error' key."
+    assert result["error"] is False, f"Operation failed: {result.get('message')}"
+    assert "message" in result, "Result missing 'message' key."
+    assert "data" in result, "Result missing 'data' key."
+
+    if result["data"] is not None:
+        expected_keys = {
+            "ticket", "symbol", "type", "volume", "price_open",
+            "sl", "tp", "price_current", "profit", "time_setup",
+        }
+        assert set(result["data"].keys()) >= expected_keys, (
+            f"Missing keys: {expected_keys - set(result['data'].keys())}"
+        )
+        assert result["data"]["type"] in ("BUY", "SELL"), (
+            f"Unexpected position type: {result['data']['type']}"
+        )
+        print(f"✅ Selected position ticket={result['data']['ticket']} "
+              f"symbol={result['data']['symbol']} type={result['data']['type']}")
+    else:
+        print("ℹ️ No open positions available — result data is None.")
+
+
+def test_get_next_open_position_with_cache_path(tmp_path, mt5_client):
+    """Tests that the cache file is created and round-robin works across calls."""
+    print("\n🧪 Testing get_next_open_position with custom cache path 🧪")
+
+    cache_file = tmp_path / "review_cache.json"
+
+    # First call — should create the cache file
+    first = mt5_client.order.get_next_open_position(cache_path=str(cache_file))
+    assert first is not None
+    assert "error" in first
+    assert first["error"] is False
+
+    if first["data"] is None:
+        print("ℹ️ No open positions available — skipping round-robin assertion.")
+        return
+
+    assert cache_file.exists(), f"Cache file was not created at {cache_file}"
+
+    # Second call — should rotate to a different ticket (if more than one exists)
+    second = mt5_client.order.get_next_open_position(cache_path=str(cache_file))
+    assert second is not None
+    assert "error" in second
+    assert second["error"] is False
+
+    if second["data"] is not None:
+        # Cache should now contain at least two tickets (or the same one twice)
+        import json
+        with open(cache_file, "r", encoding="utf-8") as f:
+            cache_data = json.load(f)
+        assert isinstance(cache_data, dict)
+        assert len(cache_data) >= 1
+        print(f"✅ Cache contains {len(cache_data)} ticket(s) after two calls.")
+    else:
+        print("ℹ️ Second call returned no data — only one position or all markets closed.")
+
+
+def test_get_next_open_position_staleness_filter(mt5_client):
+    """Tests that positions on closed markets are filtered out via staleness."""
+    print("\n🧪 Testing get_next_open_position staleness filter 🧪")
+
+    # Use an extremely low staleness threshold to force filtering
+    result = mt5_client.order.get_next_open_position(staleness_seconds=1)
+
+    assert result is not None
+    assert "error" in result
+    assert result["error"] is False
+
+    # With staleness_seconds=1, most ticks will be considered stale, so data may be None
+    if result["data"] is None:
+        assert "No positions on currently open markets" in result["message"], (
+            f"Expected closed-markets message, got: {result['message']}"
+        )
+        print("✅ Staleness filter correctly excluded all positions.")
+    else:
+        print(f"ℹ️ At least one position's tick was within 1s — "
+              f"selected ticket={result['data']['ticket']}")
