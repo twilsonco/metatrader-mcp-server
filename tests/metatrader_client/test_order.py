@@ -386,3 +386,33 @@ def test_get_next_open_position_staleness_filter(mt5_client):
     else:
         print(f"ℹ️ At least one position's tick was within 1s — "
               f"selected ticket={result['data']['ticket']}")
+
+
+def test_get_next_open_position_prunes_closed_positions(tmp_path, mt5_client):
+    """Tests that closed positions are purged from the cache."""
+    print("\n🧪 Testing get_next_open_position cache pruning 🧪")
+
+    import json
+    cache_file = tmp_path / "prune_cache.json"
+
+    # Pre-populate cache with a fake ticket that is NOT currently open
+    fake_ticket = "99999999"
+    with open(cache_file, "w", encoding="utf-8") as f:
+        json.dump({fake_ticket: 1700000000.0}, f)
+
+    # Call the tool — it should prune the stale entry
+    result = mt5_client.order.get_next_open_position(cache_path=str(cache_file))
+
+    assert result is not None
+    assert "error" in result
+    assert result["error"] is False
+
+    # Verify the fake ticket was removed from the cache
+    with open(cache_file, "r", encoding="utf-8") as f:
+        cache_after = json.load(f)
+
+    assert fake_ticket not in cache_after, (
+        f"Stale ticket {fake_ticket} should have been pruned, but cache still contains it: {cache_after}"
+    )
+    print(f"✅ Stale ticket {fake_ticket} was correctly pruned from cache.")
+    print(f"   Cache after call: {cache_after}")

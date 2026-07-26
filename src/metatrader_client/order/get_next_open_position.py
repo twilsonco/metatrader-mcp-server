@@ -130,7 +130,9 @@ def get_next_open_position(
     appears closed (based on tick staleness), then picks the position with the
     oldest (or missing) review timestamp from the persistent cache. The cache
     is updated with the current UTC timestamp for the selected ticket so
-    subsequent calls rotate through positions.
+    subsequent calls rotate through positions. Entries for positions that are
+    no longer open are pruned from the cache on every call (safe because MT5
+    ticket IDs are never reused).
 
     Args:
         connection: MetaTrader 5 connection object.
@@ -152,20 +154,30 @@ def get_next_open_position(
     # Fetch all open positions
     positions = mt5.positions_get()
     if positions is None or len(positions) == 0:
+        # No open positions — prune the entire cache (safe: MT5 ticket IDs are never reused)
+        if cache:
+            _save_cache(cache_file, {})
         return {
             "error": False,
             "message": "No open positions",
             "data": None,
         }
 
+    # Prune cache: drop entries for positions that are no longer open.
+    # MT5 ticket IDs are never reused, so this is safe and keeps the cache self-maintaining.
+    open_tickets = {str(pos.ticket) for pos in positions}
+    pruned_cache = {t: ts for t, ts in cache.items() if t in open_tickets}
+
     # Filter to positions whose market appears open
     valid_positions = []
     for pos in positions:
         if _is_market_open(pos.symbol, staleness_seconds):
-            last_checked = cache.get(str(pos.ticket), 0)
+            last_checked = pruned_cache.get(str(pos.ticket), 0)
             valid_positions.append((last_checked, pos))
 
     if not valid_positions:
+        # Persist the pruned cache even when no valid positions remain
+        _save_cache(cache_file, pruned_cache)
         return {
             "error": False,
             "message": "No positions on currently open markets",
@@ -177,8 +189,8 @@ def get_next_open_position(
     selected_pos = valid_positions[0][1]
 
     # Update cache and persist
-    cache[str(selected_pos.ticket)] = datetime.now(timezone.utc).timestamp()
-    _save_cache(cache_file, cache)
+    pruned_cache[str(selected_pos.ticket)] = datetime.now(timezone.utc).timestamp()
+    _save_cache(cache_file, pruned_cache)
 
     return {
         "error": False,
