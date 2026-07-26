@@ -100,9 +100,7 @@ def get_all_symbols(ctx: Context) -> list:
 
 @mcp.tool()
 def get_symbols(ctx: Context, group: Optional[str] = None) -> list:
-	"""
-	Get a list of available market symbols. Filter symbols by group pattern (e.g., '*USD*').
-	"""
+	"""Get a list of available market symbols. Filter symbols by group pattern (e.g., '*USD*')."""
 	client = get_client(ctx)
 	return client.market.get_symbols(group=group)
 
@@ -154,8 +152,7 @@ def get_pending_orders_by_id(ctx: Context, id: Union[int, str]) -> list:
 
 @mcp.tool()
 def place_market_order(ctx: Context, symbol: str, volume: float, type: str) -> dict:
-	"""
-	Place a market order. Parameters:
+	"""Place a market order. Parameters:
 		symbol: Symbol name (e.g., 'EURUSD')
 		volume: Lot size. (e.g. 1.5)
 		type: Order type ('BUY' or 'SELL')
@@ -165,8 +162,7 @@ def place_market_order(ctx: Context, symbol: str, volume: float, type: str) -> d
 
 @mcp.tool()
 def place_pending_order(ctx: Context, symbol: str, volume: float, type: str, price: float, stop_loss: Optional[Union[int, float]] = 0.0, take_profit: Optional[Union[int, float]] = 0.0) -> dict:
-	"""
-	Place a pending order. Parameters:
+	"""Place a pending order. Parameters:
 		symbol: Symbol name (e.g., 'EURUSD')
 		volume: Lot size. (e.g. 1.5)
 		type: Order type ('BUY', 'SELL').
