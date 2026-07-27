@@ -36,8 +36,6 @@ The cache file maps position tickets (as strings) to UTC Unix timestamps of thei
 
 The cache survives server restarts, so an AI agent running on a cron schedule won't re-review the same position after a process restart.
 
-**Self-maintaining pruning**: On every call, entries for positions that are no longer open are purged from the cache. This is safe because MetaTrader 5 ticket IDs are never reused — a closed position's ticket is permanently retired. The cache therefore stays bounded by the number of currently open positions and never accumulates stale entries.
-
 ## Market Filtering 🕐
 A position is excluded when its symbol's last tick is older than `staleness_seconds`. This avoids reviewing positions on closed markets (weekends, holidays, overnight gaps) where the floating P&L is meaningless.
 
