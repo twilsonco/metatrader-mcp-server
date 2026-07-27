@@ -151,28 +151,6 @@ def get_pending_orders_by_id(ctx: Context, id: Union[int, str]) -> list:
 	return df.to_csv() if hasattr(df, 'to_csv') else str(df)
 
 @mcp.tool()
-def get_next_open_position(ctx: Context, staleness_seconds: int = 600, cache_path: Optional[str] = None) -> dict:
-	"""Select the open position reviewed least recently for AI review.
-
-	Returns the open position whose market is currently active (tick within
-	staleness_seconds) and which has the oldest (or missing) review timestamp
-	in the persistent cache. Updates the cache with the current UTC timestamp
-	for the selected ticket so subsequent calls rotate through positions.
-
-	Args:
-		staleness_seconds: Max age of last tick before considering market closed (default: 600).
-		cache_path: Optional override for the review cache file path. Defaults to env var
-		            POSITION_REVIEW_CACHE_PATH or ~/.metatrader-mcp/position_review_cache.json.
-
-	Returns:
-		dict: {"error": bool, "message": str, "data": {...} | None} where data contains
-		      ticket, symbol, type, volume, price_open, sl, tp, price_current, profit,
-		      time_setup when a position is selected.
-	"""
-	client = get_client(ctx)
-	return client.order.get_next_open_position(staleness_seconds=staleness_seconds, cache_path=cache_path)
-
-@mcp.tool()
 def place_market_order(ctx: Context, symbol: str, volume: float, type: str) -> dict:
 	"""Place a market order. Parameters:
 		symbol: Symbol name (e.g., 'EURUSD')

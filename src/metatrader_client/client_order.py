@@ -9,7 +9,6 @@ from typing import Optional, Union
 
 from .order import get_all_positions, get_positions_by_symbol, get_positions_by_currency, get_positions_by_id
 from .order import get_all_pending_orders, get_pending_orders_by_symbol, get_pending_orders_by_currency, get_pending_orders_by_id
-from .order import get_next_open_position
 from .order import place_market_order, place_pending_order, modify_position, modify_pending_order
 from .order import close_position, close_all_positions, close_all_positions_by_symbol, close_all_profitable_positions, close_all_losing_positions
 from .order import cancel_pending_order, cancel_all_pending_orders, cancel_pending_orders_by_symbol
@@ -56,10 +55,6 @@ class MT5Order:
 
     def get_pending_orders_by_id(self, id: Union[int, str]) -> DataFrame:
         return get_pending_orders_by_id(self._connection, id)
-
-
-    def get_next_open_position(self, *, staleness_seconds: int = 600, cache_path: Optional[str] = None):
-        return get_next_open_position(self._connection, staleness_seconds=staleness_seconds, cache_path=cache_path)
 
 
     def place_market_order(self, *, type: str, symbol: str, volume: Union[float, int]):

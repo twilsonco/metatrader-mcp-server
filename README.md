@@ -549,10 +549,6 @@ SERVER=MetaQuotes-Demo
 # Optional: Specify custom MT5 terminal path (auto-detected if not provided)
 # MT5_PATH=C:\Program Files\MetaTrader 5\terminal64.exe
 
-# Optional: Override the cache file path used by get_next_open_position
-# (defaults to ~/.metatrader-mcp/position_review_cache.json)
-# POSITION_REVIEW_CACHE_PATH=/path/to/position_review_cache.json
-
 # Optional: Verbose logging (see Logging Configuration below)
 # LOG_LEVEL=DEBUG
 # MT5_DEBUG=true

@@ -47,7 +47,6 @@ if conn.connect():
 - **get_pending_orders_by_symbol(symbol)**: Get pending orders filtered by symbol.
 - **get_pending_orders_by_currency(currency)**: Get pending orders filtered by currency.
 - **get_pending_orders_by_id(id)**: Get pending order by ticket or ID.
-- **get_next_open_position(staleness_seconds=600, cache_path=None)**: Select the open position reviewed least recently for AI review. Filters out positions on closed markets and rotates through positions using a persistent JSON cache.
 - **place_market_order(type, symbol, volume)**: Place a market order (buy/sell).
 - **place_pending_order(type, symbol, volume, price, stop_loss=0.0, take_profit=0.0)**: Place a pending order.
 - **modify_position(id, stop_loss=None, take_profit=None)**: Modify stop loss/take profit of a position.
