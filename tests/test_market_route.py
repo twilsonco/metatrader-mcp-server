@@ -55,14 +55,13 @@ def test_get_symbol_info_not_found(mock_market_client_methods):
     mock_get_info, _ = mock_market_client_methods
 
     symbol_name = "UNKNOWN_SYMBOL"
-    mock_get_info.return_value = None # Simulate client returning None for not found
+    # The client raises SymbolNotFoundError when the symbol is not found
+    mock_get_info.side_effect = SymbolNotFoundError(f"Symbol '{symbol_name}' not found")
 
     with TestClient(app) as api_client:
         response = api_client.get(f"/api/v1/market/symbol/info/{symbol_name}")
 
-    # Note: The router catches HTTPException in the generic except clause,
-    # so the 404 gets wrapped in a 500 error
-    assert response.status_code == 500, response.text
+    assert response.status_code == 404, response.text
     assert "Symbol" in response.json()["detail"] and "not found" in response.json()["detail"]
     mock_get_info.assert_called_once_with(symbol_name=symbol_name)
     

@@ -87,6 +87,20 @@ def get_symbol_price(ctx: Context, symbol_name: str) -> dict:
 	return client.market.get_symbol_price(symbol_name=symbol_name)
 
 @mcp.tool()
+def get_symbol_info(ctx: Context, symbol_name: str) -> dict:
+	"""Get detailed information for a specific symbol as a dictionary.
+
+	Returns fields such as trade_tick_size, trade_tick_value, trade_tick_value_profit,
+	trade_tick_value_loss, trade_contract_size, volume_min, volume_max, volume_step,
+	volume_limit, digits, point, spread, spread_float, currency_base, currency_profit,
+	currency_margin, trade_mode, trade_mode_description, margin_initial, margin_maintenance,
+	swap_long, swap_short, swap_mode, filling_mode, filling_mode_description,
+	expiration_mode, expiration_mode_description, visible, select, and more.
+	"""
+	client = get_client(ctx)
+	return client.market.get_symbol_info(symbol_name=symbol_name)
+
+@mcp.tool()
 def get_symbol_contract_size(ctx: Context, symbol_name: str) -> float:
 	"""Get the trade contract size (number of units per lot) for a specified symbol."""
 	client = get_client(ctx)

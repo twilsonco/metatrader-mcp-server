@@ -89,25 +89,14 @@ async def get_symbol_info_endpoint( # Choose a descriptive name like get_symbol_
     """
     client = request.app.state.client
     try:
-        # The client.market.get_symbol_info() function likely returns an object
-        # that might not be directly JSON serializable (e.g. MT5SymbolInfo).
-        # It might have a ._asdict() method or similar, or you might need to
-        # manually convert its fields to a dictionary if it's a custom class.
-        # For now, assume it returns a dict or a Pydantic model that FastAPI can handle.
+        # The client.market.get_symbol_info() function returns a dict built from
+        # the MT5 symbol_info object's attributes.
         info = client.market.get_symbol_info(symbol_name=symbol_name)
-        if info is None: # Or however the client function indicates "not found"
-            raise HTTPException(status_code=404, detail=f"Symbol {symbol_name} not found or no info available.")
-        # If 'info' is an object with attributes, convert to dict:
-        # Example: if hasattr(info, '_asdict'): info = info._asdict()
-        # Or if it's a Pydantic model, FastAPI handles it.
-        # If it's a simple class, you might need: info = info.__dict__ or vars(info)
-        # For now, let's assume it's directly returnable or a Pydantic model.
         return info
+    except SymbolNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except MT5ConnectionError as e:
         raise HTTPException(status_code=503, detail=str(e))
-    # Specific exception for symbol not found if your client raises one
-    # except SymbolNotFoundError as e: # Replace with actual exception if available
-    #     raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         # Log the exception for debugging
         # logger.error(f"Error fetching symbol info for {symbol_name}: {e}")
