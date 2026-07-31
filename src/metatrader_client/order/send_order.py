@@ -135,7 +135,18 @@ def send_order(
 		take_profit = float(take_profit)
 		if not isinstance(take_profit, float):
 			return { "success": False, "message": "Invalid SL or TP" }
-		
+
+	# Fetch market price for market orders if price not provided
+	# This must run before SL/TP validation so that validation uses the real price
+	if price == 0 and order_type in [OrderType.BUY, OrderType.SELL] and symbol is not None:
+		tick = mt5.symbol_info_tick(symbol)
+		if tick is None:
+			return { "success": False, "message": f"Failed to get tick for {symbol}", "data": None }
+		price = tick.ask if order_type == OrderType.BUY else tick.bid
+		# Round to broker's precision
+		digits = symbol_info.digits
+		price = round(price, digits)
+
 	if order_type in [OrderType.BUY, OrderType.BUY_LIMIT, OrderType.BUY_STOP]:
 		if (stop_loss != 0) and (stop_loss >= price):
 			return { "success": False, "message": "Stop loss must be less than price" }
@@ -161,19 +172,9 @@ def send_order(
 		# Market execution (BUY or SELL)
 		# ------------------------------
 		case TradeRequestActions.DEAL:
-			
+
 			if order_type not in [OrderType.BUY, OrderType.SELL]:
 				return { "success": False, "message": "Invalid order type, must be BUY or SELL", "data": None }
-
-			# Ensure the price is not zero
-			if price == 0:
-				tick = mt5.symbol_info_tick(symbol)
-				if tick is None:
-					return { "success": False, "message": "Failed to get tick for {symbol}", "data": None }
-				price = tick.ask if order_type == OrderType.BUY else tick.bid
-				# Round to broker's precision
-				digits = symbol_info.digits
-				price = round(price, digits)
 
 			request = {
 				"symbol": symbol,
