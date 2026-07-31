@@ -12,14 +12,15 @@ def place_pending_order(
 	price: Union[float, int],
 	stop_loss: Optional[Union[float, int]] = 0.0,
 	take_profit: Optional[Union[float, int]] = 0.0,
+	comment: Optional[str] = "",
 ):
 	"""
 	Places a pending order on the MetaTrader 5 platform.
 
 	This function validates the order type and retrieves the current market
-	price for the specified symbol. It then determines whether to place a 
-	BUY_LIMIT, BUY_STOP, SELL_LIMIT, or SELL_STOP order based on the current 
-	price and the desired order price. The order is sent to the MetaTrader 5 
+	price for the specified symbol. It then determines whether to place a
+	BUY_LIMIT, BUY_STOP, SELL_LIMIT, or SELL_STOP order based on the current
+	price and the desired order price. The order is sent to the MetaTrader 5
 	server for execution.
 
 	Args:
@@ -30,21 +31,22 @@ def place_pending_order(
 		price: The price at which to place the pending order.
 		stop_loss: Optional stop loss level.
 		take_profit: Optional take profit level.
+		comment: Optional order comment.
 
 	Returns:
 		A dictionary with the result of the order placement. If successful,
 		it contains an order ID. Otherwise, it contains an error message.
 	"""
-	
+
 	accepted_types  = ["BUY", "SELL"]
 	if type not in accepted_types:
 		return { "error": True, "message": f"Invalid type, should be BUY or SELL.", "data": None }
-	
+
 	market = MT5Market(connection)
 	current_price = market.get_symbol_price(symbol_name=symbol)
 	if current_price is None:
 		return { "error": True, "message": f"Cannot get latest market price for {symbol}", "data": None }
-	
+
 	order_type = None
 	price = float(price)
 	if type == "BUY":
@@ -61,6 +63,7 @@ def place_pending_order(
 		price = float(price),
 		stop_loss = float(stop_loss),
 		take_profit = float(take_profit),
+		comment = comment,
 	)
 
 	if response["success"] is False:

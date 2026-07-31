@@ -165,17 +165,20 @@ def get_pending_orders_by_id(ctx: Context, id: Union[int, str]) -> list:
 	return df.to_csv() if hasattr(df, 'to_csv') else str(df)
 
 @mcp.tool()
-def place_market_order(ctx: Context, symbol: str, volume: float, type: str) -> dict:
+def place_market_order(ctx: Context, symbol: str, volume: float, type: str, stop_loss: Optional[Union[int, float]] = 0.0, take_profit: Optional[Union[int, float]] = 0.0, comment: Optional[str] = "") -> dict:
 	"""Place a market order. Parameters:
 		symbol: Symbol name (e.g., 'EURUSD')
 		volume: Lot size. (e.g. 1.5)
 		type: Order type ('BUY' or 'SELL')
+		stop_loss (optional): Stop loss price.
+		take_profit (optional): Take profit price.
+		comment (optional): Order comment.
 	"""
 	client = get_client(ctx)
-	return client.order.place_market_order(symbol=symbol, volume=volume, type=type)
+	return client.order.place_market_order(symbol=symbol, volume=volume, type=type, stop_loss=stop_loss, take_profit=take_profit, comment=comment)
 
 @mcp.tool()
-def place_pending_order(ctx: Context, symbol: str, volume: float, type: str, price: float, stop_loss: Optional[Union[int, float]] = 0.0, take_profit: Optional[Union[int, float]] = 0.0) -> dict:
+def place_pending_order(ctx: Context, symbol: str, volume: float, type: str, price: float, stop_loss: Optional[Union[int, float]] = 0.0, take_profit: Optional[Union[int, float]] = 0.0, comment: Optional[str] = "") -> dict:
 	"""Place a pending order. Parameters:
 		symbol: Symbol name (e.g., 'EURUSD')
 		volume: Lot size. (e.g. 1.5)
@@ -183,9 +186,10 @@ def place_pending_order(ctx: Context, symbol: str, volume: float, type: str, pri
 		price: Pending order price.
 		stop_loss (optional): Stop loss price.
 		take_profit (optional): Take profit price.
+		comment (optional): Order comment.
 	"""
 	client = get_client(ctx)
-	return client.order.place_pending_order(symbol=symbol, volume=volume, type=type, price=price, stop_loss=stop_loss, take_profit=take_profit)
+	return client.order.place_pending_order(symbol=symbol, volume=volume, type=type, price=price, stop_loss=stop_loss, take_profit=take_profit, comment=comment)
 
 @mcp.tool()
 def modify_position(ctx: Context, id: Union[int, str], stop_loss: Optional[Union[int, float]] = None, take_profit: Optional[Union[int, float]] = None) -> dict:
