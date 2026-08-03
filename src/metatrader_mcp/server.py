@@ -113,10 +113,10 @@ def get_all_symbols(ctx: Context) -> list:
 	return client.market.get_symbols()
 
 @mcp.tool()
-def get_symbols(ctx: Context, group: Optional[str] = None) -> list:
+def get_symbols(ctx: Context, group: Optional[str] = None, fields: list[str] = ["name"]) -> list:
 	"""Get a list of available market symbols. Filter symbols by group pattern (e.g., '*USD*')."""
 	client = get_client(ctx)
-	return client.market.get_symbols(group=group)
+	return client.market.get_symbols(group=group, fields=fields)
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Order module tools
