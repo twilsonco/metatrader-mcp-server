@@ -37,8 +37,8 @@ class MT5Market:
         """
         self._connection = connection
     
-    def get_symbols(self, group: Optional[str] = None) -> List[str]:
-        return get_symbols(self._connection, group)
+    def get_symbols(self, group: Optional[str] = None, fields: List[str] = ["name"]) -> List[str]:
+        return get_symbols(self._connection, group, fields=fields)
 
     def get_symbol_info(self, symbol_name: str) -> Dict[str, Any]:
         return get_symbol_info(self._connection, symbol_name)
