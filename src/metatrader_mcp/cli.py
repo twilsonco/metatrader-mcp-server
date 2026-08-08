@@ -54,11 +54,7 @@ def main(login, password, server, path, transport, host, port):
     transport, host, port = resolve_transport_config(transport, host, port)
     configure_logging()
     
-    # Test MT5 connection at startup and print status
-    test_client = init(login, password, server, path)
-    if test_client:
-        test_client.disconnect()
-    
+    # MCP lifespan context manager will handle MT5 connection initialization
     run_mcp(mcp, transport, host, port)
 
 if __name__ == "__main__":

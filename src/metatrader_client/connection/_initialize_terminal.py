@@ -57,6 +57,13 @@ def _initialize_terminal(connection):
             logger.error(f"Unexpected error during initialization: {str(e)}")
             backoff_time = connection.backoff_factor ** retries + jitter
             time.sleep(backoff_time)
+        finally:
+            # Clean up MT5 state between retry attempts to prevent connection accumulation
+            if retries < connection.max_retries - 1:
+                try:
+                    mt5.shutdown()
+                except Exception as e:
+                    logger.debug(f"Error during MT5 shutdown between retries: {str(e)}")
         retries += 1
     error_code, error_message = connection._get_last_error()
     raise InitializationError(f"Failed to initialize MetaTrader 5 terminal: {error_message} (Error code: {error_code})")

@@ -7,6 +7,8 @@ from .routers import router as api_router
 import os
 import argparse
 import uvicorn
+import logging
+import asyncio
 from dotenv import load_dotenv
 from metatrader_mcp.utils import init, configure_logging
 from contextlib import asynccontextmanager
@@ -24,11 +26,22 @@ async def lifespan(app):
     server = os.getenv("SERVER", os.getenv("server"))
     path = os.getenv("MT5_PATH", os.getenv("mt5_path"))
     configure_logging()
+    logger = logging.getLogger(__name__)
     client = init(login, password, server, path)
     app.state.client = client
-    yield
-    if client is not None:
-        client.disconnect()
+    try:
+        yield
+    except asyncio.CancelledError:
+        logger.debug("FastAPI lifespan cancelled during shutdown")
+    except Exception:
+        logger.exception("Unexpected error in FastAPI lifespan")
+    finally:
+        if client is not None:
+            try:
+                client.disconnect()
+                logger.debug("MT5 client disconnected successfully")
+            except Exception as e:
+                logger.warning(f"Error disconnecting MT5 client: {e}", exc_info=False)
 
 # Initialize FastAPI app with OpenAPI metadata and lifespan
 app = FastAPI(

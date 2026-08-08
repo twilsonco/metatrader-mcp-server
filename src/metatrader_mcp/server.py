@@ -2,6 +2,7 @@
 import os
 import argparse
 import logging
+import asyncio
 from dotenv import load_dotenv
 
 from mcp.server.fastmcp import FastMCP, Context
@@ -11,17 +12,19 @@ from dataclasses import dataclass
 from typing import Optional, Union
 
 from metatrader_mcp.utils import init, get_client
+from metatrader_client import MT5Client
 
 # ────────────────────────────────────────────────────────────────────────────────
 # 1) Lifespan context definition
 # ────────────────────────────────────────────────────────────────────────────────
 @dataclass
 class AppContext:
-	client: str
+	client: MT5Client | None
 
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
-
+	logger = logging.getLogger(__name__)
+	client = None
 	try:
 		client = init(
 			os.getenv("LOGIN"),
@@ -30,9 +33,17 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 			os.getenv("MT5_PATH")
 		)
 		yield AppContext(client=client)
+	except asyncio.CancelledError:
+		logger.debug("FastMCP lifespan cancelled during shutdown")
+	except Exception:
+		logger.exception("Unexpected error in FastMCP lifespan")
 	finally:
 		if client:
-			client.disconnect()
+			try:
+				client.disconnect()
+				logger.debug("MT5 client disconnected successfully")
+			except Exception as e:
+				logger.warning(f"Error disconnecting MT5 client: {e}", exc_info=False)
 
 # ────────────────────────────────────────────────────────────────────────────────
 # 2) Instantiate FastMCP as `mcp` (must be named `mcp`, `server`, or `app`)

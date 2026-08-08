@@ -50,7 +50,15 @@ class MT5Client:
         Raises:
             ConnectionError: If connection fails with specific error details.
         """
-        return self._connection.connect()
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug("MT5Client.connect() starting connection")
+        result = self._connection.connect()
+        if result:
+            logger.debug("MT5Client.connect() succeeded")
+        else:
+            logger.warning("MT5Client.connect() failed")
+        return result
     
     def disconnect(self) -> bool:
         """
@@ -61,7 +69,15 @@ class MT5Client:
         Returns:
             bool: True if disconnection was successful.
         """
-        return self._connection.disconnect()
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug("MT5Client.disconnect() closing connection")
+        result = self._connection.disconnect()
+        if result:
+            logger.debug("MT5Client.disconnect() succeeded")
+        else:
+            logger.warning("MT5Client.disconnect() failed")
+        return result
     
     def is_connected(self) -> bool:
         """
