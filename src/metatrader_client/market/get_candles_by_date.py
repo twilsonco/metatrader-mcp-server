@@ -5,6 +5,7 @@ import MetaTrader5 as mt5
 from ..types import Timeframe
 from ..exceptions import SymbolNotFoundError, InvalidTimeframeError, MarketDataError
 from .get_symbols import get_symbols
+from .fetch_with_sync import _fetch_with_sync
 
 def get_candles_by_date(
     connection,
@@ -44,16 +45,43 @@ def get_candles_by_date(
     if from_datetime and to_datetime and from_datetime > to_datetime:
         from_datetime, to_datetime = to_datetime, from_datetime
     candles = None
+    
     if from_datetime and to_datetime:
-        candles = mt5.copy_rates_range(symbol_name, tf, from_datetime, to_datetime)
+        kick_date = from_datetime - timedelta(days=30)
+        candles = _fetch_with_sync(
+            fetch_func=lambda: mt5.copy_rates_range(symbol_name, tf, from_datetime, to_datetime),
+            symbol_name=symbol_name,
+            timeframe=tf,
+            kick_date=kick_date
+        )
     elif from_datetime:
-        candles = mt5.copy_rates_from(symbol_name, tf, from_datetime, 1000)
+        kick_date = from_datetime - timedelta(days=30)
+        candles = _fetch_with_sync(
+            fetch_func=lambda: mt5.copy_rates_from(symbol_name, tf, from_datetime, 1000),
+            symbol_name=symbol_name,
+            timeframe=tf,
+            kick_date=kick_date,
+            expected_count=1000
+        )
     elif to_datetime:
         lookback_days = 30
         start_date = to_datetime - timedelta(days=lookback_days)
-        candles = mt5.copy_rates_range(symbol_name, tf, start_date, to_datetime)
+        kick_date = start_date - timedelta(days=30)
+        candles = _fetch_with_sync(
+            fetch_func=lambda: mt5.copy_rates_range(symbol_name, tf, start_date, to_datetime),
+            symbol_name=symbol_name,
+            timeframe=tf,
+            kick_date=kick_date
+        )
     else:
-        candles = mt5.copy_rates_from_pos(symbol_name, tf, 0, 1000)
+        kick_date = datetime.now(timezone.utc) - timedelta(days=365)
+        candles = _fetch_with_sync(
+            fetch_func=lambda: mt5.copy_rates_from_pos(symbol_name, tf, 0, 1000),
+            symbol_name=symbol_name,
+            timeframe=tf,
+            kick_date=kick_date,
+            expected_count=1000
+        )
     if candles is None or len(candles) == 0:
         raise MarketDataError(f"Failed to retrieve historical data for symbol '{symbol_name}' with timeframe '{timeframe}'")
     df = pd.DataFrame(candles)
