@@ -63,6 +63,18 @@ class MT5Client:
         """
         return self._connection.disconnect()
     
+    async def async_disconnect(self) -> bool:
+        """
+        Asynchronously disconnect from the MetaTrader 5 terminal.
+        
+        This method should be used during graceful shutdown to avoid blocking
+        the event loop. Wraps the blocking mt5.shutdown() call in asyncio.to_thread().
+        
+        Returns:
+            bool: True if disconnection was successful.
+        """
+        return await self._connection.async_disconnect()
+    
     def is_connected(self) -> bool:
         """
         Check if connected to the MetaTrader 5 terminal.

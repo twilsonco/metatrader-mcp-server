@@ -21,18 +21,30 @@ class AppContext:
 
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
+	logger = logging.getLogger("MCP.Lifespan")
 
 	try:
+		logger.debug("MCP Lifespan: Starting up")
 		client = init(
 			os.getenv("LOGIN"),
 			os.getenv("PASSWORD"),
 			os.getenv("SERVER"),
 			os.getenv("MT5_PATH")
 		)
+		logger.debug("MCP Lifespan: Client initialized")
 		yield AppContext(client=client)
 	finally:
+		logger.debug("MCP Lifespan: Shutting down")
 		if client:
-			client.disconnect()
+			try:
+				# Only mark connection as closed - do NOT try to manage task cancellation
+				# Let Uvicorn handle the graceful shutdown of all tasks and connections
+				client._connection._connected = False
+				logger.debug("MCP Lifespan: Connection marked as closed")
+			except Exception as e:
+				logger.warning(f"MCP Lifespan: Error marking connection closed: {e}")
+		# Return immediately - Uvicorn will handle the rest of the shutdown
+		logger.debug("MCP Lifespan: Shutdown complete (not blocking)")
 
 # ────────────────────────────────────────────────────────────────────────────────
 # 2) Instantiate FastMCP as `mcp` (must be named `mcp`, `server`, or `app`)

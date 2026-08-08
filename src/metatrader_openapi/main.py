@@ -7,6 +7,7 @@ from .routers import router as api_router
 import os
 import argparse
 import uvicorn
+import logging
 from dotenv import load_dotenv
 from metatrader_mcp.utils import init, configure_logging
 from contextlib import asynccontextmanager
@@ -19,16 +20,28 @@ settings = Settings()
 async def lifespan(app):
     # Load environment and support uppercase or lowercase vars
     load_dotenv()
+    logger = logging.getLogger("FastAPI.Lifespan")
     login = os.getenv("LOGIN", os.getenv("login"))
     password = os.getenv("PASSWORD", os.getenv("password"))
     server = os.getenv("SERVER", os.getenv("server"))
     path = os.getenv("MT5_PATH", os.getenv("mt5_path"))
     configure_logging()
+    logger.debug("FastAPI Lifespan: Starting up")
     client = init(login, password, server, path)
     app.state.client = client
+    logger.debug("FastAPI Lifespan: Client initialized")
     yield
+    logger.debug("FastAPI Lifespan: Shutting down")
     if client is not None:
-        client.disconnect()
+        try:
+            # Only mark connection as closed - do NOT try to manage task cancellation
+            # Let Uvicorn handle the graceful shutdown of all tasks and connections
+            client._connection._connected = False
+            logger.debug("FastAPI Lifespan: Connection marked as closed")
+        except Exception as e:
+            logger.warning(f"FastAPI Lifespan: Error marking connection closed: {e}")
+    # Return immediately - Uvicorn will handle the rest of the shutdown
+    logger.debug("FastAPI Lifespan: Shutdown complete (not blocking)")
 
 # Initialize FastAPI app with OpenAPI metadata and lifespan
 app = FastAPI(

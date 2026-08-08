@@ -73,7 +73,7 @@ async def _call_tool(session):
         result = await session.call_tool(
             "get_candles_latest",
             {
-                "symbol_name": "EURUSD",
+                "symbol_name": "AUDUSD",
                 "timeframe": "H1",
                 "count": 720,
             }

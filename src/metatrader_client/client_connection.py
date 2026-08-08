@@ -8,6 +8,7 @@ import time
 import datetime
 import logging
 import random
+import asyncio
 from typing import Dict, List, Tuple, Union, Optional
 
 try:
@@ -24,6 +25,7 @@ from .connection import (
     _get_last_error,
     connect,
     disconnect,
+    async_disconnect,
     is_connected,
     get_terminal_info,
     get_version,
@@ -70,12 +72,16 @@ class MT5Connection:
         self.cooldown_time = config.get("cooldown_time", 2.0)
         self._connected = False
         self._last_connection_time = 0
+        self._disconnect_called = False  # Prevent multiple disconnect attempts
+        self._disconnect_lock = asyncio.Lock()  # Async lock for thread-safe disconnect
         
         # Set up logging level
         if self.debug:
             logger.setLevel(logging.DEBUG)
         else:
             logger.setLevel(logging.INFO)
+        
+        logger.debug("MT5Connection initialized")
         
         # Standard paths to look for MetaTrader 5 terminal
         self.standard_paths = [
@@ -104,6 +110,10 @@ class MT5Connection:
 
     def disconnect(self) -> bool:
         return disconnect(self)
+
+    async def async_disconnect(self) -> bool:
+        """Asynchronously disconnect from MetaTrader 5 terminal."""
+        return await async_disconnect(self)
 
     def is_connected(self) -> bool:
         return is_connected(self)

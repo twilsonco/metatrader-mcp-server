@@ -4,7 +4,7 @@ from ._initialize_terminal import _initialize_terminal
 from ._login import _login
 from ._get_last_error import _get_last_error
 from .connect import connect
-from .disconnect import disconnect
+from .disconnect import disconnect, async_disconnect
 from .is_connected import is_connected
 from .get_terminal_info import get_terminal_info
 from .get_version import get_version
@@ -17,6 +17,7 @@ __all__ = [
     '_get_last_error',
     'connect',
     'disconnect',
+    'async_disconnect',
     'is_connected',
     'get_terminal_info',
     'get_version'
