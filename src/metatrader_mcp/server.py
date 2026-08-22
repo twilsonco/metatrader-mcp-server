@@ -208,11 +208,13 @@ def modify_position(ctx: Context, id: Union[int, str], stop_loss: Optional[Union
 	"""Modify an open position by ID."""
 	client = get_client(ctx)
 	return client.order.modify_position(id=id, stop_loss=stop_loss, take_profit=take_profit)
+
 @mcp.tool()
 def modify_pending_order(ctx: Context, id: Union[int, str], price: Optional[Union[int, float]] = None, stop_loss: Optional[Union[int, float]] = None, take_profit: Optional[Union[int, float]] = None) -> dict:
 	"""Modify a pending order by ID."""
 	client = get_client(ctx)
 	return client.order.modify_pending_order(id=id, price=price, stop_loss=stop_loss, take_profit=take_profit)
+
 @mcp.tool()
 def close_position(ctx: Context, id: Union[int, str]) -> dict:
 	"""Close an open position by ID."""
