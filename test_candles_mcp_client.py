@@ -69,13 +69,13 @@ async def test_via_stdio():
 async def _call_tool(session):
     """Call the get_candles_latest tool via the session."""
     try:
-        print("Calling get_candles_latest(symbol_name='EURUSD', timeframe='H1', count=720)...\n")
+        print("Calling get_candles_latest()...\n")
         result = await session.call_tool(
             "get_candles_latest",
             {
-                "symbol_name": "AUDUSD",
+                "symbol_name": "EURUSD",
                 "timeframe": "H1",
-                "count": 720,
+                "count": 900,
             }
         )
         
@@ -99,7 +99,7 @@ async def main():
     """Main entry point."""
     SYMBOL = "EURUSD"
     TIMEFRAME = "H1"
-    COUNT = 720
+    COUNT = 900
     
     print(f"Test: Fetch {COUNT} {TIMEFRAME} candles for {SYMBOL}\n")
     print("=" * 70)
