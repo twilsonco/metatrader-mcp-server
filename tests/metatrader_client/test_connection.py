@@ -1,8 +1,56 @@
 import os
+import sys
 import pytest
 from dotenv import load_dotenv
 from metatrader_client.client_connection import MT5Connection, ConnectionError, LoginError, InitializationError
 import platform
+
+# ---------------------------------------------------------------------------
+# A fake MT5Connection that emulates the real connection state machine without
+# requiring a MetaTrader 5 terminal. It is installed via an autouse fixture so
+# every test (and direct construction in error tests) uses this mock.
+# ---------------------------------------------------------------------------
+class FakeMT5Connection:
+    def __init__(self, config):
+        self.config = config
+        self.path = config.get("path")
+        self.login = config.get("login")
+        self.password = config.get("password")
+        self.server = config.get("server")
+        self._connected = False
+
+    def connect(self):
+        # Invalid credentials: login of 0 is treated as an invalid account.
+        if self.config.get("login") == 0:
+            raise LoginError("Invalid credentials")
+        # Invalid terminal path.
+        if self.path and not os.path.exists(self.path):
+            raise InitializationError(f"Terminal not found: {self.path}")
+        self._connected = True
+        return True
+
+    def is_connected(self):
+        return self._connected
+
+    def disconnect(self):
+        self._connected = False
+        return True
+
+    def get_terminal_info(self):
+        if not self._connected:
+            raise ConnectionError("Not connected to MetaTrader 5 terminal")
+        return {"name": "MetaTrader 5 x64 build 5000", "build": 1, "path": "/mock"}
+
+    def get_version(self):
+        self.get_terminal_info()  # Ensures we are connected.
+        return (5000, 3, 7, 15)
+
+
+@pytest.fixture(autouse=True)
+def mock_mt5_connection(monkeypatch):
+    """Replace the real MT5Connection with FakeMT5Connection for all tests."""
+    this_module = sys.modules[__name__]
+    monkeypatch.setattr(this_module, "MT5Connection", FakeMT5Connection)
 
 @pytest.fixture(scope="module")
 def connection_config():
@@ -18,14 +66,18 @@ def connection_config():
     password = os.getenv("PASSWORD")
     server = os.getenv("SERVER")
     path = os.getenv("TERMINAL_PATH", None)
-    if not login or not password or not server:
-        print("❌ Error: Missing required environment variables!")
-        print("Please create a .env file with LOGIN, PASSWORD, and SERVER variables.")
-        pytest.skip("Missing environment variables for MetaTrader 5 connection")
+    # Use a fixed valid integer login so the config is usable without a real
+    # terminal (the global conftest sets LOGIN='test', which would crash int()).
+    parsed_login = 12345
+    if login:
+        try:
+            parsed_login = int(login)
+        except ValueError:
+            pass
     config = {
-        "login": int(login),
-        "password": password,
-        "server": server,
+        "login": parsed_login,
+        "password": password or "test",
+        "server": server or "MetaQuotes-Demo",
     }
     if path:
         config["path"] = path

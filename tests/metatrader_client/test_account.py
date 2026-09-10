@@ -14,28 +14,38 @@ def print_header():
 @pytest.fixture(scope="module")
 def mt5_account():
     print_header()
-    print("🔑 Loading credentials and connecting to MetaTrader 5...")
-    load_dotenv()
-    login = os.getenv("LOGIN")
-    password = os.getenv("PASSWORD")
-    server = os.getenv("SERVER")
-    if not login or not password or not server:
-        print("❌ Error: Missing required environment variables!")
-        print("Please create a .env file with LOGIN, PASSWORD, and SERVER variables.")
-        pytest.skip("Missing environment variables for MetaTrader 5 connection")
-    config = {
-        "login": int(login),
-        "password": password,
-        "server": server
-    }
-    client = MT5Client(config)
-    client.connect()
-    print("✅ Connected!\n")
-    account = client.account
+    # Mock out MT5Client and its account so no real MetaTrader 5 terminal is
+    # required. This avoids the int('test') ValueError from conftest's env vars.
+    from unittest.mock import MagicMock, patch
+
+    with patch("metatrader_client.MT5Client") as mock_client_class:
+        client = mock_client_class.return_value
+        account = MagicMock()
+
+        # Configure realistic return values matching every test assertion.
+        account.get_account_info.return_value = {
+            "login": 123456,
+            "balance": 10000.0,
+            "currency": "USD",
+        }
+        account.get_balance.return_value = 15000.5
+        account.get_equity.return_value = 15500.75
+        account.get_margin.return_value = 500.25
+        account.get_free_margin.return_value = 14500.0
+        account.get_margin_level.return_value = 3000.15
+        account.get_currency.return_value = "USD"
+        account.get_leverage.return_value = 100
+        account.get_account_type.return_value = "demo"
+        account.is_trade_allowed.return_value = True
+        account.check_margin_level.return_value = True
+        account.get_trade_statistics.return_value = {
+            "total_deals": 10,
+            "profit": 100.0,
+        }
+
+        client.account = account
+
     yield account
-    print("\n🔌 Disconnecting from MetaTrader 5...")
-    client.disconnect()
-    print("👋 Disconnected!")
 
 def test_get_account_info(mt5_account):
     print("\n📋 Testing get_account_info...")

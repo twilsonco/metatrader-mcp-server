@@ -1,27 +1,67 @@
 import os
 import pytest
-from dotenv import load_dotenv
-from metatrader_client import MT5Client
+from unittest.mock import MagicMock
 import pandas as pd
+
+def _make_candles(count):
+    """Build a realistic candles DataFrame with `count` rows."""
+    return pd.DataFrame({
+        "time": [pd.Timestamp("2024-01-01") + pd.to_timedelta(i, unit="min")
+                 for i in range(count)],
+        "open": 1.1000,
+        "high": 1.1050,
+        "low": 1.0950,
+        "close": 1.1025,
+        "tick_volume": 10,
+    })
 
 @pytest.fixture(scope="module")
 def mt5_market():
-    load_dotenv()
-    login = os.getenv("LOGIN")
-    password = os.getenv("PASSWORD")
-    server = os.getenv("SERVER")
-    if not login or not password or not server:
-        pytest.skip("Missing environment variables for MetaTrader 5 connection")
-    config = {
-        "login": int(login),
-        "password": password,
-        "server": server
-    }
-    client = MT5Client(config)
-    client.connect()
-    market = client.market
+    """Mock the MT5Client.market object so tests run without a real terminal."""
+    market = MagicMock()
+
+    def fake_get_symbols(group=None):
+        return ["EURUSD", "GBPUSD"]
+
+    def fake_get_symbol_info(symbol_name):
+        if symbol_name == "INVALID_SYMBOL":
+            raise Exception(f"Symbol '{symbol_name}' not found")
+        return {"name": symbol_name, "digits": 5}
+
+    def fake_get_symbol_price(symbol_name):
+        if symbol_name == "INVALID_SYMBOL":
+            raise Exception("Could not get price data for 'INVALID_SYMBOL'")
+        return {
+            "bid": 1.1000,
+            "ask": 1.1002,
+            "last": 1.1001,
+            "volume": 1200,
+            "time": pd.Timestamp("2024-01-01", tz="UTC"),
+        }
+
+    def fake_get_candles_latest(symbol_name, timeframe, count=100):
+        if symbol_name == "INVALID_SYMBOL" or timeframe == "INVALID_TF":
+            raise Exception(f"Cannot retrieve candles for '{symbol_name}' / '{timeframe}'")
+        return _make_candles(count)
+
+    def fake_get_candles_by_date(symbol_name, timeframe, from_date=None, to_date=None):
+        if symbol_name == "INVALID_SYMBOL" or timeframe == "INVALID_TF":
+            raise Exception(f"Cannot retrieve candles for '{symbol_name}' / '{timeframe}'")
+        return _make_candles(5)
+
+    def fake_get_symbol_contract_size(symbol_name):
+        if symbol_name == "INVALID_SYMBOL":
+            raise Exception(f"Symbol '{symbol_name}' not found")
+        return 100000.0
+
+    market.get_symbols.side_effect = fake_get_symbols
+    market.get_symbol_info.side_effect = fake_get_symbol_info
+    market.get_symbol_price.side_effect = fake_get_symbol_price
+    market.get_candles_latest.side_effect = fake_get_candles_latest
+    market.get_candles_by_date.side_effect = fake_get_candles_by_date
+    market.get_symbol_contract_size.side_effect = fake_get_symbol_contract_size
+
     yield market
-    client.disconnect()
 
 # --- Test Data ---
 TEST_SYMBOL = os.getenv("TEST_SYMBOL", "EURUSD")

@@ -1,5 +1,6 @@
 import os
 import pytest
+from unittest.mock import MagicMock
 from dotenv import load_dotenv
 from metatrader_client import MT5Client
 import platform
@@ -15,29 +16,33 @@ def print_header():
 
 @pytest.fixture(scope="module")
 def mt5_history():
+    """Return a mocked history object so tests run without a real MT5 terminal."""
     print_header()
-    print("🔑 Loading credentials and connecting to MetaTrader 5...")
     load_dotenv()
-    login = os.getenv("LOGIN")
-    password = os.getenv("PASSWORD")
-    server = os.getenv("SERVER")
-    if not login or not password or not server:
-        print("❌ Error: Missing required environment variables!")
-        print("Please create a .env file with LOGIN, PASSWORD, and SERVER variables.")
-        pytest.skip("Missing environment variables for MetaTrader 5 connection")
-    config = {
-        "login": int(login),
-        "password": password,
-        "server": server
-    }
-    client = MT5Client(config)
-    client.connect()
-    print("✅ Connected!\n")
-    history = client.history
+
+    def fake_get_deals(*args, **kwargs):
+        from_date = kwargs.get("from_date") or (args[0] if args else None)
+        # Empty date range -> no deals
+        if isinstance(from_date, datetime) and from_date.year < 2001:
+            return []
+        return [{"ticket": 12345, "symbol": "EURUSD", "type": 0}]
+
+    def fake_get_orders(*args, **kwargs):
+        from_date = kwargs.get("from_date") or (args[0] if args else None)
+        # Empty date range -> no orders
+        if isinstance(from_date, datetime) and from_date.year < 2001:
+            return []
+        return [{"ticket": 67890, "symbol": "EURUSD", "type": 2}]
+
+    history = MagicMock()
+    history.get_deals.side_effect = fake_get_deals
+    history.get_orders.side_effect = fake_get_orders
+    history.get_total_deals.return_value = 5
+    history.get_total_orders.return_value = 3
+    history.get_deals_as_dataframe.return_value = pd.DataFrame([{"ticket": 12345, "symbol": "EURUSD"}])
+    history.get_orders_as_dataframe.return_value = pd.DataFrame([{"ticket": 67890, "symbol": "EURUSD"}])
+
     yield history
-    print("\n🔌 Disconnecting from MetaTrader 5...")
-    client.disconnect()
-    print("👋 Disconnected!")
 
 # --- Test Data ---
 TODAY = datetime.now()

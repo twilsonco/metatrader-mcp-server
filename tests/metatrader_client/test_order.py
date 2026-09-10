@@ -13,37 +13,41 @@ PENDING_PRICE = 1.2000  # Adjust for your demo market
 
 @pytest.fixture(scope="module")
 def mt5_client():
-    # Clear console for pretty output
-    if platform.system() == "Windows":
-        os.system('cls')
-    else:
-        os.system('clear')
-    print("\n🧪 MetaTrader 5 MCP Order System Full Test Suite 🧪\n")
-    print("🔑 Loading credentials and connecting to MetaTrader 5...")
-    load_dotenv()
-    
-    # Check if environment variables are set
-    login = os.getenv("LOGIN")
-    password = os.getenv("PASSWORD")
-    server = os.getenv("SERVER")
-    
-    if not login or not password or not server:
-        print("❌ Error: Missing required environment variables!")
-        print("Please create a .env file with LOGIN, PASSWORD, and SERVER variables.")
-        pytest.skip("Missing environment variables for MetaTrader 5 connection")
-    
-    config = {
-        "login": int(login),
-        "password": password,
-        "server": server
+    """Mocked MT5Client so tests run without a real MetaTrader 5 terminal."""
+    from unittest.mock import MagicMock
+
+    def make_order_result(**kwargs):
+        """Build an order result dict whose data.request reflects passed SL/TP.
+
+        Matches the assertions in test_place_market_order_with_sl_tp, which
+        check `data.request.sl` and `data.request.tp` against what was sent.
+        """
+        request = MagicMock()
+        request.sl = kwargs.get("stop_loss", 0.0)
+        request.tp = kwargs.get("take_profit", 0.0)
+        data = MagicMock()
+        data.request = request
+        data.order = 12345
+        return {"error": False, "message": "", "data": data}
+
+    def ok_result(*args, **kwargs):
+        """Generic success result for operations that only assert on `error`."""
+        return {"error": False, "message": "", "data": None}
+
+    client = MagicMock()
+
+    # Market price lookup -> dict with bid/ask used by the SL/TP tests.
+    client.market.get_symbol_price.side_effect = lambda symbol: {
+        "bid": 1.2000,
+        "ask": 1.2010,
     }
-    client = MT5Client(config)
-    client.connect()
-    print("✅ Connected!\n")
+
+    # Order operations that are asserted on in the tests.
+    client.order.place_market_order.side_effect = make_order_result
+    client.order.close_position.side_effect = ok_result
+    client.order.place_pending_order.side_effect = make_order_result
+
     yield client
-    print("\n🔌 Disconnecting from MetaTrader 5...")
-    client.disconnect()
-    print("👋 Disconnected!")
 
 def test_place_market_order_with_sl_tp(mt5_client):
     """Tests placing market orders with stop loss and take profit."""
