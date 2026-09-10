@@ -38,7 +38,7 @@ def convert_positions_to_dataframe(
     if positions is None or len(positions) == 0:
         # Create empty DataFrame with expected columns
         default_columns = ['id', 'time', 'symbol', 'type', 'volume', 
-                          'open', 'stop_loss', 'take_profit', 'profit']
+                          'open', 'stop_loss', 'take_profit', 'profit', 'comment']
         return pd.DataFrame(columns=default_columns)
     
     # Default columns mapping if not provided
@@ -52,7 +52,8 @@ def convert_positions_to_dataframe(
             'price_open': 'open',
             'sl': 'stop_loss',
             'tp': 'take_profit',
-            'profit': 'profit'
+            'profit': 'profit',
+            'comment': 'comment'
         }
     
     # Convert named tuples to list of dictionaries
